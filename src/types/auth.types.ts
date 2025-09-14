@@ -15,14 +15,14 @@ export interface LoginCredentials {
 }
 
 export interface RegisterCredentials {
-  name: string;
+  username: string;
   email: string;
   password: string;
-  confirmPassword: string;
+  full_name?: string;
 }
 
 export interface AuthResponse {
-  user: User;
+  user: User | null;
   token: string;
   refreshToken?: string;
 }

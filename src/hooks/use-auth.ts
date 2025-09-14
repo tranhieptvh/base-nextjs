@@ -15,21 +15,27 @@ export const useAuth = () => {
     setToken,
     setLoading,
     clearAuth,
+    initializeAuth,
+    refreshToken,
   } = useAuthStore();
 
   const router = useRouter();
 
-  // Check if user is authenticated on mount
+  // Initialize auth state on mount (only once)
   useEffect(() => {
-    if (token && !user) {
-      // TODO: Verify token and fetch user data
-      setLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setLoading(false);
-      }, 1000);
+    initializeAuth();
+  }, []); // Empty dependency array to run only once
+
+  // Auto refresh token before expiry
+  useEffect(() => {
+    if (isAuthenticated) {
+      const interval = setInterval(() => {
+        refreshToken();
+      }, 15 * 60 * 1000); // Refresh every 15 minutes
+
+      return () => clearInterval(interval);
     }
-  }, [token, user, setLoading]);
+  }, [isAuthenticated]); // Remove refreshToken from dependencies
 
   const handleLogin = async (credentials: Parameters<typeof login>[0]) => {
     try {

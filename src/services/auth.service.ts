@@ -10,34 +10,145 @@ import {
   ResendVerificationRequest
 } from '@/types/auth.types';
 
+// Token management utilities
+const TOKEN_KEY = 'auth-token';
+const REFRESH_TOKEN_KEY = 'refresh-token';
+
+const tokenManager = {
+  // Save tokens to localStorage
+  setTokens(accessToken: string, refreshToken?: string) {
+    localStorage.setItem(TOKEN_KEY, accessToken);
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
+    // Update axios instance with new token
+    apiClient.updateAuthToken(accessToken);
+  },
+
+  // Get access token
+  getAccessToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+  },
+
+  // Get refresh token
+  getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  },
+
+  // Clear all tokens
+  clearTokens() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    // Clear from axios instance
+    apiClient.clearAuthToken();
+  },
+
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return !!this.getAccessToken();
+  }
+};
+
 export const authService = {
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
-    return response.data!;
+    const response = await apiClient.post<{ access_token: string; refresh_token: string }>('/auth/login', credentials);
+    const { access_token, refresh_token } = response.data!;
+    
+    // Store tokens
+    tokenManager.setTokens(access_token, refresh_token);
+    
+    // Return user data (we'll need to fetch user separately)
+    return {
+      user: null, // Will be fetched separately
+      token: access_token,
+      refreshToken: refresh_token
+    };
   },
 
   // Register user
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/register', credentials);
-    return response.data!;
+    await apiClient.post<{ data: unknown }>('/auth/register', credentials);
+    
+    // After successful registration, automatically login to get tokens
+    const loginResponse = await this.login({
+      email: credentials.email,
+      password: credentials.password
+    });
+    
+    return loginResponse;
   },
 
   // Logout user
   async logout(): Promise<void> {
-    await apiClient.post('/auth/logout');
+    try {
+      const refreshToken = tokenManager.getRefreshToken();
+      if (refreshToken) {
+        await apiClient.post('/auth/logout', { refresh_token: refreshToken });
+      }
+    } catch (error) {
+      // Continue with logout even if API call fails
+      console.error('Logout API call failed:', error);
+    } finally {
+      // Always clear local tokens
+      tokenManager.clearTokens();
+    }
   },
 
   // Get current user
   async getCurrentUser() {
-    const response = await apiClient.get('/auth/me');
-    return response.data;
+    const token = tokenManager.getAccessToken();
+    
+    if (!token) {
+      throw new Error('No authentication token found. Please login again.');
+    }
+    
+    try {
+      const response = await apiClient.get('/users/me');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      // If it's a 401 error, clear the tokens
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        tokenManager.clearTokens();
+        apiClient.clearAuthToken(); // Also clear from axios instance
+        throw new Error('Session expired. Please login again.');
+      }
+      throw error;
+    }
   },
 
   // Refresh token
   async refreshToken(): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/refresh');
-    return response.data!;
+    const refreshToken = tokenManager.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await apiClient.post<{ access_token: string; refresh_token: string }>('/auth/refresh-token', {
+      refresh_token: refreshToken
+    });
+    
+    const { access_token, refresh_token } = response.data!;
+    
+    // Update stored tokens
+    tokenManager.setTokens(access_token, refresh_token);
+    
+    return {
+      user: null, // Will be fetched separately
+      token: access_token,
+      refreshToken: refresh_token
+    };
+  },
+
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return tokenManager.isAuthenticated();
+  },
+
+  // Get stored access token
+  getAccessToken(): string | null {
+    return tokenManager.getAccessToken();
   },
 
   // Forgot password
@@ -47,7 +158,10 @@ export const authService = {
 
   // Reset password
   async resetPassword(data: ResetPasswordRequest): Promise<void> {
-    await apiClient.post('/auth/reset-password', data);
+    await apiClient.post('/auth/reset-password', {
+      token: data.token,
+      new_password: data.password
+    });
   },
 
   // Change password

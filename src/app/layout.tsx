@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { MainLayout } from "@/components/layout/main-layout";
-import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Base NextJS App",
   description: "A modern NextJS application with all essential features built-in",
   keywords: ["NextJS", "React", "TypeScript", "Tailwind CSS"],
   authors: [{ name: "Base NextJS Team" }],
-  creator: "Base NextJS Team",
+  creator: "Base NextJS",
+  publisher: "Base NextJS",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("http://localhost:3000"),
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://base-nextjs.app",
     title: "Base NextJS App",
     description: "A modern NextJS application with all essential features built-in",
-    siteName: "Base NextJS App",
+    url: "http://localhost:3000",
+    siteName: "Base NextJS",
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
@@ -44,14 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <MainLayout>{children}</MainLayout>
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );

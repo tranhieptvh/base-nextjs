@@ -6,14 +6,15 @@ export interface BaseEntity {
   updatedAt: Date;
 }
 
-export interface User extends BaseEntity {
-  name: string;
+export interface User {
+  id: number;
   email: string;
-  avatar?: string;
-  bio?: string;
-  role: 'admin' | 'user' | 'moderator';
-  isEmailVerified: boolean;
-  lastLoginAt?: Date;
+  username: string;
+  full_name?: string;
+  role_id?: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface ApiResponse<T = unknown> {

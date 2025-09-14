@@ -70,8 +70,8 @@ src/
 
 3. **Set up environment variables**
    ```bash
-   cp env.example .env.local
-   # Edit .env.local with your configuration
+   cp env.example .env.
+   # Edit .env with your configuration
    ```
 
 4. **Start development server**

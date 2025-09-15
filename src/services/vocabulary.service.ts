@@ -1,20 +1,11 @@
 import { apiClient } from '@/lib/api';
 
 // Types
-export interface WordAnalysisRequest {
-  word_phrase: string;
-}
-
 export interface WordAnalysisResponse {
   classification: string;
   pronunciation: string;
   meaning: string;
   difficulty_level: string;
-}
-
-export interface ExampleFeedbackRequest {
-  word_phrase: string;
-  example_sentence: string;
 }
 
 export interface ExampleFeedbackResponse {
@@ -23,6 +14,22 @@ export interface ExampleFeedbackResponse {
   suggestions: string;
   alternative_examples: string[];
 }
+
+// --- New Types for Interactive Flow ---
+export interface InteractiveLearningRequest {
+  word_phrase: string;
+  example_sentence: string;
+}
+
+export interface InteractiveLearningState {
+  word_phrase: string;
+  analysis_result: WordAnalysisResponse;
+  example_sentence: string;
+  feedback_result: ExampleFeedbackResponse;
+  evaluation_result: 'good' | 'needs_improvement';
+  error?: string;
+}
+// --- End New Types ---
 
 export interface SaveVocabularyRequest {
   word_phrase: string;
@@ -119,21 +126,11 @@ class VocabularyService {
   private baseUrl = '/vocabulary';
 
   /**
-   * Analyze a word or phrase to get classification, pronunciation, and meaning
+   * New: Handles an interactive learning session using a stateful graph.
    */
-  async analyzeWord(data: WordAnalysisRequest): Promise<WordAnalysisResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/analyze-word`, data);
-    // Backend now returns data wrapped in success_response format
-    return response.data as WordAnalysisResponse;
-  }
-
-  /**
-   * Get AI feedback on an example sentence
-   */
-  async getExampleFeedback(data: ExampleFeedbackRequest): Promise<ExampleFeedbackResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/feedback-example`, data);
-    // Backend now returns data wrapped in success_response format
-    return response.data as ExampleFeedbackResponse;
+  async runInteractiveLearning(data: InteractiveLearningRequest): Promise<InteractiveLearningState> {
+    const response = await apiClient.post(`${this.baseUrl}/learn/interactive`, data);
+    return response.data as InteractiveLearningState;
   }
 
   /**

@@ -97,7 +97,7 @@ src/
 
 ### Environment Variables
 
-Copy `env.example` to `.env.local` and configure:
+Copy `env.example` to `.env` and configure:
 
 ```env
 # Database

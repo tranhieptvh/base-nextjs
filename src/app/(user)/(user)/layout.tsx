@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { LoadingSpinner } from '@/components/common/loading-spinner';
@@ -11,16 +11,22 @@ export default function UserRouteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, initializeAuth } = useAuthStore();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    setIsClient(true);
+    initializeAuth();
+  }, [initializeAuth]);
+
+  useEffect(() => {
+    if (isClient && !isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isClient, isLoading, isAuthenticated, router]);
 
-  if (isLoading) {
+  if (!isClient || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
@@ -32,6 +38,5 @@ export default function UserRouteLayout({
     return null;
   }
 
-  // UserLayout already has useAuth() and Toaster, so just return it
   return <UserLayout>{children}</UserLayout>;
 }

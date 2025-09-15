@@ -11,22 +11,18 @@ export const useAuth = () => {
     login,
     register,
     logout,
-    setUser,
-    setToken,
-    setLoading,
-    clearAuth,
     initializeAuth,
     refreshToken,
   } = useAuthStore();
 
   const router = useRouter();
 
-  // Initialize auth state on mount (only once)
+  // Initialize auth on mount
   useEffect(() => {
     initializeAuth();
-  }, []); // Empty dependency array to run only once
+  }, [initializeAuth]);
 
-  // Auto refresh token before expiry
+  // Auto refresh token
   useEffect(() => {
     if (isAuthenticated) {
       const interval = setInterval(() => {
@@ -35,14 +31,13 @@ export const useAuth = () => {
 
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated]); // Remove refreshToken from dependencies
+  }, [isAuthenticated, refreshToken]);
 
   const handleLogin = async (credentials: Parameters<typeof login>[0]) => {
     try {
       await login(credentials);
       router.push('/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
       throw error;
     }
   };
@@ -52,7 +47,6 @@ export const useAuth = () => {
       await register(credentials);
       router.push('/dashboard');
     } catch (error) {
-      console.error('Registration error:', error);
       throw error;
     }
   };
@@ -60,22 +54,6 @@ export const useAuth = () => {
   const handleLogout = () => {
     logout();
     router.push('/');
-  };
-
-  const requireAuth = () => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return false;
-    }
-    return true;
-  };
-
-  const requireGuest = () => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-      return false;
-    }
-    return true;
   };
 
   return {
@@ -89,13 +67,5 @@ export const useAuth = () => {
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
-    setUser,
-    setToken,
-    setLoading,
-    clearAuth,
-    
-    // Utilities
-    requireAuth,
-    requireGuest,
   };
 };

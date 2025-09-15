@@ -21,6 +21,7 @@ import {
   Bell,
   Search,
   ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 
 export default function UserHeader() {
@@ -58,6 +59,12 @@ export default function UserHeader() {
               className="text-gray-700 hover:text-gray-900 transition-colors font-medium"
             >
               Dashboard
+            </Link>
+            <Link
+              href="/learn"
+              className="text-gray-700 hover:text-gray-900 transition-colors font-medium"
+            >
+              Learn
             </Link>
             <Link
               href="/settings"
@@ -120,6 +127,12 @@ export default function UserHeader() {
                       <Link href="/dashboard" className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/learn" className="flex items-center">
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Learn
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -186,14 +199,23 @@ export default function UserHeader() {
                 Contact
               </Link>
               {user ? (
-                // Authenticated user - show dashboard
-                <Link
-                  href="/dashboard"
-                  className="text-gray-700 hover:text-gray-900 transition-colors px-3 py-2 rounded"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                // Authenticated user - show dashboard and learn
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="text-gray-700 hover:text-gray-900 transition-colors px-3 py-2 rounded"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/learn"
+                    className="text-gray-700 hover:text-gray-900 transition-colors px-3 py-2 rounded"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Learn
+                  </Link>
+                </>
               ) : (
                 // Guest user - show auth buttons
                 <>

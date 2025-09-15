@@ -22,16 +22,8 @@ export const useAuth = () => {
     initializeAuth();
   }, [initializeAuth]);
 
-  // Auto refresh token
-  useEffect(() => {
-    if (isAuthenticated) {
-      const interval = setInterval(() => {
-        refreshToken();
-      }, 15 * 60 * 1000); // Refresh every 15 minutes
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, refreshToken]);
+  // Note: Auto refresh is handled by UserLayout component
+  // to avoid duplicate refresh calls
 
   const handleLogin = async (credentials: Parameters<typeof login>[0]) => {
     try {

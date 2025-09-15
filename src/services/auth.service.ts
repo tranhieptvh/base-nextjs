@@ -3,11 +3,13 @@ import {
   LoginCredentials, 
   RegisterCredentials, 
   AuthResponse,
+  LoginResponse,
   ForgotPasswordRequest,
   ResetPasswordRequest,
   ChangePasswordRequest,
   VerifyEmailRequest,
-  ResendVerificationRequest
+  ResendVerificationRequest,
+  User
 } from '@/types/auth.types';
 
 // Token management utilities
@@ -51,23 +53,26 @@ const tokenManager = {
 
 export const authService = {
   // Login user
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiClient.post<{ access_token: string; refresh_token: string }>('/auth/login', credentials);
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
     const { access_token, refresh_token } = response.data!;
     
     // Store tokens
     tokenManager.setTokens(access_token, refresh_token);
     
-    // Return user data (we'll need to fetch user separately)
+    // Get user data
+    const user = await this.getCurrentUser();
+    
     return {
-      user: null, // Will be fetched separately
-      token: access_token,
-      refreshToken: refresh_token
+      user: user as User | null,
+      access_token,
+      refresh_token,
+      token_type: response.data?.token_type || 'bearer'
     };
   },
 
   // Register user
-  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
+  async register(credentials: RegisterCredentials): Promise<LoginResponse> {
     await apiClient.post<{ data: unknown }>('/auth/register', credentials);
     
     // After successful registration, automatically login to get tokens
@@ -125,7 +130,7 @@ export const authService = {
       throw new Error('No refresh token available');
     }
 
-    const response = await apiClient.post<{ access_token: string; refresh_token: string }>('/auth/refresh-token', {
+    const response = await apiClient.post<AuthResponse>('/auth/refresh-token', {
       refresh_token: refreshToken
     });
     
@@ -135,9 +140,9 @@ export const authService = {
     tokenManager.setTokens(access_token, refresh_token);
     
     return {
-      user: null, // Will be fetched separately
-      token: access_token,
-      refreshToken: refresh_token
+      access_token,
+      refresh_token,
+      token_type: response.data?.token_type || 'bearer'
     };
   },
 

@@ -1,9 +1,15 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse } from '@/types/common.types';
 import { API_CONFIG } from './config';
+import { authService } from '@/services/auth.service';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
+  private isRefreshing = false;
+  private failedQueue: Array<{
+    resolve: (value: string | null) => void;
+    reject: (error: Error) => void;
+  }> = [];
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -14,6 +20,22 @@ class ApiClient {
       },
     });
 
+    this.setupInterceptors();
+  }
+
+  private processQueue(error: Error | null, token: string | null = null) {
+    this.failedQueue.forEach(({ resolve, reject }) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(token);
+      }
+    });
+    
+    this.failedQueue = [];
+  }
+
+  private setupInterceptors() {
     // Add request interceptor for auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
@@ -30,12 +52,61 @@ class ApiClient {
       }
     );
 
-    // Add response interceptor for error handling
+    // Add response interceptor for error handling and auto-refresh
     this.axiosInstance.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          if (this.isRefreshing) {
+            // If already refreshing, queue this request
+            return new Promise((resolve, reject) => {
+              this.failedQueue.push({ resolve, reject });
+            }).then(token => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.axiosInstance(originalRequest);
+            }).catch(err => {
+              return Promise.reject(err);
+            });
+          }
+
+          originalRequest._retry = true;
+          this.isRefreshing = true;
+
+          try {
+            const response = await authService.refreshToken();
+            const newToken = response.access_token;
+            
+            // Update access token in localStorage
+            localStorage.setItem('auth-token', newToken);
+            
+            // Process queued requests
+            this.processQueue(null, newToken);
+            
+            // Retry original request with new token
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return this.axiosInstance(originalRequest);
+          } catch (refreshError) {
+            // Refresh failed, process queue with error
+            this.processQueue(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'), null);
+            
+            // Clear tokens and redirect to login
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('refresh-token');
+            
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+            
+            return Promise.reject(refreshError);
+          } finally {
+            this.isRefreshing = false;
+          }
+        }
+
+        // Handle other errors
         if (error.response) {
-          // Server responded with error status
           const { status, data } = error.response;
           let errorMessage = 'An error occurred';
           
@@ -46,7 +117,6 @@ class ApiClient {
           } else if (data?.error) {
             errorMessage = data.error;
           } else {
-            // Handle HTTP status codes
             switch (status) {
               case 401:
                 errorMessage = 'Unauthorized. Please login again.';
@@ -73,10 +143,8 @@ class ApiClient {
           customError.response = error.response;
           return Promise.reject(customError);
         } else if (error.request) {
-          // Network error
           return Promise.reject(new Error('Network error. Please check your connection and try again.'));
         } else {
-          // Other error
           return Promise.reject(error);
         }
       }

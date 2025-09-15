@@ -22,9 +22,16 @@ export interface RegisterCredentials {
 }
 
 export interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+export interface LoginResponse {
   user: User | null;
-  token: string;
-  refreshToken?: string;
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
 }
 
 export interface ForgotPasswordRequest {

@@ -27,14 +27,13 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         try {
           const response = await authService.login(credentials);
-          const user = await authService.getCurrentUser();
           
           // Set token in cookie for middleware
-          setCookie('auth-token', response.token, 7);
+          setCookie('auth-token', response.access_token, 7);
           
           set({
-            user: user as User,
-            token: response.token,
+            user: response.user as User,
+            token: response.access_token,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -49,14 +48,13 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         try {
           const response = await authService.register(credentials);
-          const user = await authService.getCurrentUser();
           
           // Set token in cookie for middleware
-          setCookie('auth-token', response.token, 7);
+          setCookie('auth-token', response.access_token, 7);
           
           set({
-            user: user as User,
-            token: response.token,
+            user: response.user as User,
+            token: response.access_token,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -109,7 +107,7 @@ export const useAuthStore = create<AuthStore>()(
           
           set({
             user: user as User,
-            token: response.token,
+            token: response.access_token,
             isAuthenticated: true,
           });
         } catch {
